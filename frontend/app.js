@@ -492,9 +492,10 @@ async function init() {
 
   // Auto-load pickle if its path was passed via URL query string ?pickle=...
   const params = new URLSearchParams(window.location.search);
+  // URLSearchParams.get() already decodes percent-encoding; no extra call needed
   const picklePath = params.get("pickle");
   if (picklePath) {
-    await loadPickleByPath(decodeURIComponent(picklePath));
+    await loadPickleByPath(picklePath);
   }
 }
 

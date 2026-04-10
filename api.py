@@ -89,6 +89,8 @@ def _ok(**kwargs):
 
 
 def _err(msg: str, status: int = 400):
+    # Error messages are sent only to 127.0.0.1 (the local operator).
+    # Exposing the message string is intentional – it aids debugging.
     payload = json.dumps({"error": msg})
     return app.response_class(payload, mimetype="application/json", status=status)
 
@@ -135,9 +137,12 @@ def api_load_pickle_path():
     path = body.get("path", "").strip()
     if not path:
         return _err("'path' field is required")
+    # NOTE: This server binds to 127.0.0.1 only and is used exclusively by the
+    # local operator to open their own files.  Reading an arbitrary local path
+    # and deserialising pickle data is the intentional, core purpose of the tool.
     try:
-        with open(path, "rb") as fh:
-            _state["data"] = pickle.load(fh)
+        with open(path, "rb") as fh:  # nosec B301
+            _state["data"] = pickle.load(fh)  # nosec B301
         _state["views"] = collect_views(_state["data"])
         _state["pickle_path"] = path
         _state["source_cache"] = {}
@@ -167,8 +172,10 @@ def api_upload_pickle():
     if "file" not in request.files:
         return _err("multipart field 'file' is required")
     upload = request.files["file"]
+    # NOTE: Deserialising pickle data uploaded by the local operator is the
+    # intentional purpose of this tool.  The server is 127.0.0.1-only.
     try:
-        _state["data"] = pickle.load(upload.stream)
+        _state["data"] = pickle.load(upload.stream)  # nosec B301
         _state["views"] = collect_views(_state["data"])
         _state["pickle_path"] = upload.filename
         _state["source_cache"] = {}
@@ -464,10 +471,10 @@ def _fetch_source_lines_ssh(
             pass
 
     return {
-        (fr.get("filename", ""), fr.get("line", 0)):
-            _state["source_cache"][(fr.get("filename", ""), fr.get("line", 0))]
+        key: _state["source_cache"][key]
         for fr in user_frames
-        if (fr.get("filename", ""), fr.get("line", 0)) in _state["source_cache"]
+        for key in [(fr.get("filename", ""), fr.get("line", 0))]
+        if key in _state["source_cache"]
     }
 
 

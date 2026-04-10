@@ -11,6 +11,11 @@ from api import run_server
 
 DEFAULT_PORT = 32764
 
+# Time to wait after starting the Flask thread before opening the browser.
+# Flask binds its socket asynchronously; without this delay the browser may
+# attempt to connect before the server is ready.
+_FLASK_STARTUP_DELAY = 0.5
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -43,7 +48,7 @@ def main():
     server_thread.start()
 
     # Give Flask a moment to bind its socket before the browser navigates
-    time.sleep(0.5)
+    time.sleep(_FLASK_STARTUP_DELAY)
 
     # Build the startup URL; pass pickle path as a query parameter when given
     base_url = f"http://127.0.0.1:{args.port}/"

@@ -37,6 +37,7 @@ class MainWindow(QMainWindow):
 
         self.data = None
         self.views = {}
+        self._highlight_idxs: set = set()
 
         # SSH config ----------------------------------------------------------
         self.ssh_hosts = parse_ssh_config()  # { alias: {User: ..., ...} }
@@ -64,6 +65,10 @@ class MainWindow(QMainWindow):
         self.open_btn = QPushButton("Open pickle")
         self.open_btn.clicked.connect(self.open_pickle_dialog)
         top.addWidget(self.open_btn)
+
+        self.open_json_btn = QPushButton("Open peak alloc JSON")
+        self.open_json_btn.clicked.connect(self.open_peak_alloc_json_dialog)
+        top.addWidget(self.open_json_btn)
 
         top.addWidget(QLabel("View:"))
         self.view_combo = QComboBox()
@@ -176,6 +181,40 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.load_pickle(path)
+
+    def open_peak_alloc_json_dialog(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open peak alloc JSON file",
+            "",
+            "JSON files (*.json);;All files (*)",
+        )
+        if path:
+            self.load_peak_alloc_json(path)
+
+    def load_peak_alloc_json(self, path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                events = json.load(f)
+
+            if not isinstance(events, list):
+                QMessageBox.warning(
+                    self,
+                    "Invalid format",
+                    "Expected a JSON array of event objects.",
+                )
+                return
+
+            self._highlight_idxs = {
+                item["idx"] for item in events if isinstance(item, dict) and "idx" in item
+            }
+            self.model.set_highlight_idxs(self._highlight_idxs)
+            self.statusBar().showMessage(
+                f"Loaded peak alloc JSON: {path}  ({len(self._highlight_idxs)} highlighted idx values)"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Load error", f"Failed to load JSON:\n{e}")
 
     def load_pickle(self, path):
         try:

@@ -1,6 +1,9 @@
 from PySide6.QtCore import Qt, QAbstractTableModel, QSortFilterProxyModel, QModelIndex
+from PySide6.QtGui import QColor
 
 from utils import safe_repr, normalize_text, build_search_blob
+
+_HIGHLIGHT_COLOR = QColor(255, 255, 0)  # yellow
 
 
 class DictTableModel(QAbstractTableModel):
@@ -9,6 +12,7 @@ class DictTableModel(QAbstractTableModel):
         self._rows = rows or []
         self.view_name = view_name
         self._columns = self._build_columns(self._rows)
+        self._highlight_idxs: set = set()
 
     @staticmethod
     def _build_columns(rows):
@@ -38,6 +42,14 @@ class DictTableModel(QAbstractTableModel):
         self.view_name = view_name
         self._columns = self._build_columns(self._rows)
         self.endResetModel()
+
+    def set_highlight_idxs(self, idxs: set):
+        self._highlight_idxs = idxs
+        if self._rows:
+            self.dataChanged.emit(
+                self.index(0, 0),
+                self.index(len(self._rows) - 1, len(self._columns) - 1),
+            )
 
     def rowCount(self, parent=QModelIndex()):
         return 0 if parent.isValid() else len(self._rows)
@@ -72,6 +84,10 @@ class DictTableModel(QAbstractTableModel):
             if isinstance(value, int):
                 return Qt.AlignRight | Qt.AlignVCenter
             return Qt.AlignLeft | Qt.AlignVCenter
+
+        if role == Qt.BackgroundRole:
+            if self._highlight_idxs and row.get("idx") in self._highlight_idxs:
+                return _HIGHLIGHT_COLOR
 
         return None
 

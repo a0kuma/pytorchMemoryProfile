@@ -1,14 +1,18 @@
 from PySide6.QtCore import Qt, QAbstractTableModel, QSortFilterProxyModel, QModelIndex
+from PySide6.QtGui import QColor
 
 from utils import safe_repr, normalize_text, build_search_blob
 
 
 class DictTableModel(QAbstractTableModel):
+    _HIGHLIGHT_COLOR = QColor(255, 255, 0)  # yellow
+
     def __init__(self, rows=None, view_name=""):
         super().__init__()
         self._rows = rows or []
         self.view_name = view_name
         self._columns = self._build_columns(self._rows)
+        self._highlighted_addrs: set = set()
 
     @staticmethod
     def _build_columns(rows):
@@ -31,6 +35,13 @@ class DictTableModel(QAbstractTableModel):
                     seen.add(k)
 
         return columns
+
+    def set_highlighted_addrs(self, addrs: set):
+        self._highlighted_addrs = addrs
+        if self._rows:
+            top_left = self.index(0, 0)
+            bottom_right = self.index(len(self._rows) - 1, len(self._columns) - 1)
+            self.dataChanged.emit(top_left, bottom_right, [Qt.BackgroundRole])
 
     def set_rows(self, rows, view_name=""):
         self.beginResetModel()
@@ -72,6 +83,13 @@ class DictTableModel(QAbstractTableModel):
             if isinstance(value, int):
                 return Qt.AlignRight | Qt.AlignVCenter
             return Qt.AlignLeft | Qt.AlignVCenter
+
+        if role == Qt.BackgroundRole:
+            if self._highlighted_addrs:
+                addr = row.get("addr")
+                if addr is not None and addr in self._highlighted_addrs:
+                    return self._HIGHLIGHT_COLOR
+            return None
 
         return None
 

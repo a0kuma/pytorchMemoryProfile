@@ -6,6 +6,12 @@
  */
 
 /* ============================================================
+   Constants
+   ============================================================ */
+/** Milliseconds to wait after the last keystroke before firing a search. */
+const SEARCH_DEBOUNCE_MS = 400;
+
+/* ============================================================
    Tiny REST client
    ============================================================ */
 const API = {
@@ -436,7 +442,7 @@ el.viewSelect.addEventListener("change", async () => {
   await loadView();
 });
 
-// Search (debounced 400 ms)
+// Search (debounced)
 el.searchInput.addEventListener("input", () => {
   clearTimeout(state._searchTimer);
   state._searchTimer = setTimeout(async () => {
@@ -444,7 +450,7 @@ el.searchInput.addEventListener("input", () => {
     state.page   = 0;
     state.selectedAbsIndex = null;
     await loadView();
-  }, 400);
+  }, SEARCH_DEBOUNCE_MS);
 });
 
 el.clearSearchBtn.addEventListener("click", async () => {

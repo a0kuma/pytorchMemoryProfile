@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyTorch Memory Profiler</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Top bar ─────────────────────────────────────────────────────── -->
+  <div id="topbar">
+
+    <!-- Row 1: file, view, search -->
+    <div class="bar-row" id="row1">
+      <button id="openPickleBtn">Open Pickle</button>
+      <!-- hidden; triggered by the button above -->
+      <input type="file" id="pickleFileInput"
+             accept=".pkl,.pickle,.pt,.bin" aria-label="Select pickle file" />
+
+      <label for="viewSelect">View:</label>
+      <select id="viewSelect" disabled><option value="">— no file loaded —</option></select>
+
+      <label for="searchInput">Search:</label>
+      <input type="text" id="searchInput" disabled
+             placeholder="Filter rows… e.g. alloc, 0x7979fe000000, b'7979fe000000_0'" />
+      <button id="clearSearchBtn" disabled>Clear</button>
+
+      <span id="countLabel">—</span>
+    </div>
+
+    <!-- Row 2: SSH host + frame-user filter -->
+    <div class="bar-row" id="row2">
+      <label for="sshHostSelect">SSH Host:</label>
+      <select id="sshHostSelect">
+        <option value="">— no filter —</option>
+      </select>
+
+      <label for="frameUserInput">Frame user filter:</label>
+      <input type="text" id="frameUserInput"
+             placeholder="Username to highlight in frames (e.g. andy)"
+             title="Only Python frames whose path contains this username are shown in 'User Code Frames'." />
+    </div>
+
+  </div><!-- #topbar -->
+
+  <!-- ── Main area ────────────────────────────────────────────────────── -->
+  <div id="mainArea">
+
+    <!-- Left: scrollable table + pagination -->
+    <div id="tablePanel">
+      <div id="tableWrapper">
+        <table id="dataTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="paginationBar">
+        <span id="pageInfo"></span>
+        <button id="prevPageBtn" disabled>‹ Prev</button>
+        <button id="nextPageBtn" disabled>Next ›</button>
+      </div>
+    </div><!-- #tablePanel -->
+
+    <!-- Right: row detail pane -->
+    <div id="detailsPanel">
+      <pre id="detailsContent">Select a row to see details.</pre>
+    </div>
+
+  </div><!-- #mainArea -->
+
+  <!-- ── Status bar ───────────────────────────────────────────────────── -->
+  <div id="statusBar" role="status"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

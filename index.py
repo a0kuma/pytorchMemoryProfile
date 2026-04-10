@@ -4,6 +4,8 @@ import os
 import pickle
 import platform
 import re
+import shlex
+import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QAbstractTableModel, QSortFilterProxyModel, QModelIndex
@@ -303,6 +305,8 @@ class MainWindow(QMainWindow):
 
         # SSH config ----------------------------------------------------------
         self.ssh_hosts = parse_ssh_config()  # { alias: {User: ..., ...} }
+        self._ssh_hostname: str = ""          # HostName of currently selected SSH host
+        self._source_cache: dict = {}         # { (filepath, lineno): source_line_str }
 
         self.model = DictTableModel()
         self.proxy = DictFilterProxyModel()
@@ -416,13 +420,16 @@ class MainWindow(QMainWindow):
             self.ssh_combo.setCurrentIndex(0)
 
     def _on_ssh_host_changed(self, _index):
-        """When the SSH host changes, update the frame-user filter."""
+        """When the SSH host changes, update the frame-user filter and hostname."""
         alias = self.ssh_combo.currentText()
+        self._source_cache.clear()
         if alias == _NO_SSH_HOST:
             self.frame_user_edit.clear()
+            self._ssh_hostname = ""
             return
         host_cfg = self.ssh_hosts.get(alias, {})
         user = host_cfg.get("user", "")
+        self._ssh_hostname = host_cfg.get("hostname", "")
         self.frame_user_edit.setText(user)
 
     def open_pickle_dialog(self):
@@ -502,6 +509,62 @@ class MainWindow(QMainWindow):
         else:
             self.count_label.setText(f"{shown}/{total} rows")
 
+    def _fetch_source_lines_via_ssh(self, user_frames: list) -> dict:
+        """
+        SSH into the currently selected host and fetch the actual source line for
+        each frame in *user_frames*.
+
+        Returns a dict ``{(filename, lineno): source_line_str}``.
+        Frames whose lines cannot be fetched are simply absent from the result.
+        """
+        username = self.frame_user_edit.text().strip()
+        hostname = self._ssh_hostname
+        if not username or not hostname:
+            return {}
+
+        # Group needed (filename, lineno) pairs by file, skipping cached ones
+        by_file: dict[str, set[int]] = {}
+        for fr in user_frames:
+            fn = fr.get("filename", "")
+            ln = fr.get("line", 0)
+            if fn and ln > 0 and (fn, ln) not in self._source_cache:
+                by_file.setdefault(fn, set()).add(ln)
+
+        for filepath, linenos in by_file.items():
+            # Build an awk program that prints "LINENO:content" for each wanted line.
+            # awk_parts contains only integer literals and fixed punctuation — no
+            # user-supplied strings — so there is no shell/awk injection risk.
+            # filepath is guarded by shlex.quote().
+            awk_parts = " ".join(
+                f'NR=={ln}{{print "{ln}:" $0}}' for ln in sorted(linenos)
+            )
+            remote_cmd = f"awk '{awk_parts}' {shlex.quote(filepath)}"
+            try:
+                proc = subprocess.run(
+                    ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+                     f"{username}@{hostname}", remote_cmd],
+                    capture_output=True, text=True, timeout=15,
+                )
+                if proc.returncode == 0:
+                    for output_line in proc.stdout.splitlines():
+                        colon_idx = output_line.find(":")
+                        if colon_idx > 0:
+                            try:
+                                ln = int(output_line[:colon_idx])
+                                content = output_line[colon_idx + 1:]
+                                self._source_cache[(filepath, ln)] = content
+                            except ValueError:
+                                pass
+            except Exception:
+                pass
+
+        return {
+            key: self._source_cache[key]
+            for fr in user_frames
+            for key in [(fr.get("filename", ""), fr.get("line", 0))]
+            if key in self._source_cache
+        }
+
     def show_current_row_details(self, *args):
         index = self.table.currentIndex()
         if not index.isValid():
@@ -525,11 +588,15 @@ class MainWindow(QMainWindow):
                 else:
                     header = f"=== User Code Frames  [{username}] ==="
                 lines.append(header)
+                source_lines = self._fetch_source_lines_via_ssh(user_frames)
                 for i, fr in enumerate(user_frames, 1):
                     fn = fr.get("filename", "?")
                     ln = fr.get("line", 0)
                     name = fr.get("name", "")
                     lines.append(f"  [{i}] {fn}:{ln}  —  {name}")
+                    src = source_lines.get((fn, ln))
+                    if src is not None:
+                        lines.append(f"       |  {src}")
                 lines.append("")
             elif username:
                 lines.append(f"=== User Code Frames  (no match for '{username}') ===")

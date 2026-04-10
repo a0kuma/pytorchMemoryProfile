@@ -1,6 +1,9 @@
 import sys
 import json
+import os
 import pickle
+import platform
+import re
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QAbstractTableModel, QSortFilterProxyModel, QModelIndex
@@ -21,6 +24,73 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QHeaderView,
 )
+
+
+_NO_SSH_HOST = "-- no filter --"
+
+
+def get_ssh_config_path() -> Path:
+    """Return the platform-appropriate path to ~/.ssh/config."""
+    if platform.system() == "Windows":
+        home_str = os.environ.get("USERPROFILE") or os.environ.get("HOMEPATH") or ""
+        home = Path(home_str) if home_str else Path.home()
+    else:
+        home = Path.home()
+    return home / ".ssh" / "config"
+
+
+def parse_ssh_config() -> dict:
+    """
+    Parse ~/.ssh/config and return a dict::
+
+        { host_alias: {"User": "...", "HostName": "...", ...}, ... }
+
+    The special wildcard host ``*`` is included if present.
+    Returns an empty dict when the file is missing or unreadable.
+    """
+    config_path = get_ssh_config_path()
+    hosts: dict = {}
+    if not config_path.is_file():
+        return hosts
+    try:
+        with open(config_path, "r", encoding="utf-8", errors="replace") as fh:
+            current_host: str | None = None
+            for raw in fh:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                m = re.match(r"^(\S+)\s+(.*)", line)
+                if not m:
+                    continue
+                key, value = m.group(1), m.group(2).strip()
+                if key.lower() == "host":
+                    current_host = value
+                    hosts.setdefault(current_host, {})
+                elif current_host is not None:
+                    hosts[current_host][key.lower()] = value
+    except OSError:
+        pass
+    return hosts
+
+
+def get_user_frames(frames: list, username: str) -> list:
+    """
+    Return the subset of *frames* that are Python files whose path
+    contains *username* as a directory component (e.g. ``/home/andy/...``).
+
+    Both POSIX (``/username/``) and Windows (``\\username\\``) separators
+    are matched.  Returns an empty list when *username* is blank.
+    """
+    if not frames or not username:
+        return []
+    needle_posix = f"/{username}/"
+    needle_win = f"\\{username}\\"
+    result = []
+    for frame in frames:
+        fn = frame.get("filename") or ""
+        if fn.endswith(".py") and (needle_posix in fn or needle_win in fn):
+            result.append(frame)
+    return result
 
 
 def safe_repr(value):
@@ -231,11 +301,15 @@ class MainWindow(QMainWindow):
         self.data = None
         self.views = {}
 
+        # SSH config ----------------------------------------------------------
+        self.ssh_hosts = parse_ssh_config()  # { alias: {User: ..., ...} }
+
         self.model = DictTableModel()
         self.proxy = DictFilterProxyModel()
         self.proxy.setSourceModel(self.model)
 
         self._build_ui()
+        self._populate_ssh_combo()
 
         if pickle_path:
             self.load_pickle(pickle_path)
@@ -245,7 +319,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(root)
         main_layout = QVBoxLayout(root)
 
-        # top bar
+        # top bar — row 1: open / view / search
         top = QHBoxLayout()
 
         self.open_btn = QPushButton("Open pickle")
@@ -274,6 +348,33 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(top)
 
+        # top bar — row 2: SSH host + frame-user filter
+        ssh_bar = QHBoxLayout()
+
+        ssh_bar.addWidget(QLabel("SSH Host:"))
+        self.ssh_combo = QComboBox()
+        self.ssh_combo.setMinimumWidth(160)
+        self.ssh_combo.setToolTip(
+            "Select a host from ~/.ssh/config to set the frame-user filter automatically"
+        )
+        self.ssh_combo.currentIndexChanged.connect(self._on_ssh_host_changed)
+        ssh_bar.addWidget(self.ssh_combo)
+
+        ssh_bar.addWidget(QLabel("Frame user filter:"))
+        self.frame_user_edit = QLineEdit()
+        self.frame_user_edit.setPlaceholderText(
+            "Username to highlight in frames (e.g. andy)"
+        )
+        self.frame_user_edit.setToolTip(
+            "Only Python frames whose path contains this username are shown in "
+            "'User Code Frames'. Auto-set from the SSH host's User field."
+        )
+        self.frame_user_edit.textChanged.connect(self.show_current_row_details)
+        ssh_bar.addWidget(self.frame_user_edit, 1)
+
+        ssh_bar.addStretch()
+        main_layout.addLayout(ssh_bar)
+
         # main splitter
         splitter = QSplitter()
 
@@ -297,6 +398,32 @@ class MainWindow(QMainWindow):
 
         splitter.setSizes([950, 450])
         main_layout.addWidget(splitter)
+
+    def _populate_ssh_combo(self):
+        """Fill the SSH host combo box from the parsed ~/.ssh/config."""
+        self.ssh_combo.blockSignals(True)
+        self.ssh_combo.clear()
+        self.ssh_combo.addItem(_NO_SSH_HOST)
+        for alias in sorted(self.ssh_hosts.keys()):
+            if alias == "*":
+                continue  # skip wildcard catch-all
+            self.ssh_combo.addItem(alias)
+        self.ssh_combo.blockSignals(False)
+        # Pre-select the first real host if any
+        if self.ssh_combo.count() > 1:
+            self.ssh_combo.setCurrentIndex(1)
+        else:
+            self.ssh_combo.setCurrentIndex(0)
+
+    def _on_ssh_host_changed(self, _index):
+        """When the SSH host changes, update the frame-user filter."""
+        alias = self.ssh_combo.currentText()
+        if alias == _NO_SSH_HOST:
+            self.frame_user_edit.clear()
+            return
+        host_cfg = self.ssh_hosts.get(alias, {})
+        user = host_cfg.get("user", "")
+        self.frame_user_edit.setText(user)
 
     def open_pickle_dialog(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -384,8 +511,35 @@ class MainWindow(QMainWindow):
         src_index = self.proxy.mapToSource(index)
         row = self.model.row_dict(src_index.row())
 
-        pretty = json.dumps(row, indent=2, ensure_ascii=False, default=str)
-        self.details.setPlainText(pretty)
+        lines = []
+
+        # --- User Code Frames section ----------------------------------------
+        frames = row.get("frames")
+        username = self.frame_user_edit.text().strip()
+        if frames and isinstance(frames, list):
+            user_frames = get_user_frames(frames, username)
+            if user_frames:
+                ssh_alias = self.ssh_combo.currentText()
+                if ssh_alias != _NO_SSH_HOST:
+                    header = f"=== User Code Frames  [{ssh_alias} / {username}] ==="
+                else:
+                    header = f"=== User Code Frames  [{username}] ==="
+                lines.append(header)
+                for i, fr in enumerate(user_frames, 1):
+                    fn = fr.get("filename", "?")
+                    ln = fr.get("line", 0)
+                    name = fr.get("name", "")
+                    lines.append(f"  [{i}] {fn}:{ln}  —  {name}")
+                lines.append("")
+            elif username:
+                lines.append(f"=== User Code Frames  (no match for '{username}') ===")
+                lines.append("")
+
+        # --- Full row data ---------------------------------------------------
+        lines.append("=== Full Row Data ===")
+        lines.append(json.dumps(row, indent=2, ensure_ascii=False, default=str))
+
+        self.details.setPlainText("\n".join(lines))
 
 
 def main():

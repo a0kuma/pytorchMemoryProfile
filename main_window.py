@@ -1,6 +1,6 @@
 import webbrowser
 
-from PySide6.QtWidgets import QMainWindow, QLabel
+from PySide6.QtWidgets import QMainWindow, QLabel, QTabWidget
 from PySide6.QtCore import Qt
 
 try:
@@ -27,22 +27,43 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("PyTorch Memory Profiler")
         self.resize(1400, 800)
+        viz_url = "https://a0kuma.github.io/pytorchMemoryViz/"
 
         if _HAS_WEBENGINE:
-            self._browser = _QWebEngineView(self)
-            self.setCentralWidget(self._browser)
-            self._browser.load(_QUrl(url))
-            # Mirror the page <title> in the window title bar
-            self._browser.titleChanged.connect(self.setWindowTitle)
+            tabs = QTabWidget(self)
+            self.setCentralWidget(tabs)
+
+            self.main_browser = _QWebEngineView(self)
+            self.main_browser.load(_QUrl(url))
+            tabs.addTab(self.main_browser, "main_browser")
+
+            self.browser_Viz = _QWebEngineView(self)
+            self.browser_Viz.load(_QUrl(viz_url))
+            tabs.addTab(self.browser_Viz, "browser_Viz")
+
+            # Keep the window title aligned with the currently visible page.
+            def _sync_title() -> None:
+                current = tabs.currentWidget()
+                if isinstance(current, _QWebEngineView):
+                    page_title = current.title().strip()
+                    self.setWindowTitle(page_title or "PyTorch Memory Profiler")
+                else:
+                    self.setWindowTitle("PyTorch Memory Profiler")
+
+            tabs.currentChanged.connect(lambda _index: _sync_title())
+            self.main_browser.titleChanged.connect(lambda _title: _sync_title())
+            self.browser_Viz.titleChanged.connect(lambda _title: _sync_title())
+            _sync_title()
         else:
             # Graceful fallback: open in external browser, show info label
             webbrowser.open(url)
+            webbrowser.open(viz_url)
             label = QLabel(
                 f"<p style='font-size:14px'>"
                 f"<b>PySide6-WebEngine is not installed.</b><br><br>"
-                f"The REST API is running at:<br>"
-                f"<a href='{url}'>{url}</a><br><br>"
-                f"Open the URL above in your browser to use the interface.<br>"
+                f"Open these URLs in your browser:<br>"
+                f"main_browser: <a href='{url}'>{url}</a><br>"
+                f"browser_Viz: <a href='{viz_url}'>{viz_url}</a><br><br>"
                 f"Install <code>pyside6-webengine</code> for the embedded view."
                 f"</p>",
                 self,

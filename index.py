@@ -32,7 +32,8 @@ _NO_SSH_HOST = "-- no filter --"
 def get_ssh_config_path() -> Path:
     """Return the platform-appropriate path to ~/.ssh/config."""
     if platform.system() == "Windows":
-        home = Path(os.environ.get("USERPROFILE", os.environ.get("HOMEPATH", "")))
+        home_str = os.environ.get("USERPROFILE") or os.environ.get("HOMEPATH") or ""
+        home = Path(home_str) if home_str else Path.home()
     else:
         home = Path.home()
     return home / ".ssh" / "config"
@@ -66,7 +67,7 @@ def parse_ssh_config() -> dict:
                     current_host = value
                     hosts.setdefault(current_host, {})
                 elif current_host is not None:
-                    hosts[current_host][key] = value
+                    hosts[current_host][key.lower()] = value
     except OSError:
         pass
     return hosts
@@ -421,7 +422,7 @@ class MainWindow(QMainWindow):
             self.frame_user_edit.clear()
             return
         host_cfg = self.ssh_hosts.get(alias, {})
-        user = host_cfg.get("User", host_cfg.get("user", ""))
+        user = host_cfg.get("user", "")
         self.frame_user_edit.setText(user)
 
     def open_pickle_dialog(self):

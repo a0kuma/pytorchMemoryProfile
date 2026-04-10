@@ -65,6 +65,10 @@ class MainWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open_pickle_dialog)
         top.addWidget(self.open_btn)
 
+        self.peak_json_btn = QPushButton("Load Peak JSON")
+        self.peak_json_btn.clicked.connect(self.open_peak_json_dialog)
+        top.addWidget(self.peak_json_btn)
+
         top.addWidget(QLabel("View:"))
         self.view_combo = QComboBox()
         self.view_combo.currentIndexChanged.connect(self.change_view)
@@ -212,6 +216,46 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Load error", f"Failed to load pickle:\n{e}")
+
+    def open_peak_json_dialog(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open peak alloc events JSON",
+            "",
+            "JSON files (*.json);;All files (*)",
+        )
+        if path:
+            self.load_peak_json(path)
+
+    def load_peak_json(self, path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            if not isinstance(data, list):
+                QMessageBox.warning(
+                    self,
+                    "Invalid JSON",
+                    "Expected a JSON array of objects with an 'idx' field.",
+                )
+                return
+
+            indices = {item["idx"] for item in data if "idx" in item}
+            if not indices:
+                QMessageBox.warning(
+                    self,
+                    "No idx found",
+                    "No 'idx' fields found in the JSON array.",
+                )
+                return
+
+            self.model.set_highlight_indices(indices)
+            self.statusBar().showMessage(
+                f"Peak JSON loaded: {path}  ({len(indices)} highlighted idx values)"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Load error", f"Failed to load JSON:\n{e}")
 
     def change_view(self):
         name = self.view_combo.currentText()

@@ -1,6 +1,9 @@
 from PySide6.QtCore import Qt, QAbstractTableModel, QSortFilterProxyModel, QModelIndex
+from PySide6.QtGui import QColor
 
 from utils import safe_repr, normalize_text, build_search_blob
+
+_HIGHLIGHT_COLOR = QColor("yellow")
 
 
 class DictTableModel(QAbstractTableModel):
@@ -9,6 +12,7 @@ class DictTableModel(QAbstractTableModel):
         self._rows = rows or []
         self.view_name = view_name
         self._columns = self._build_columns(self._rows)
+        self._highlight_indices: set = set()
 
     @staticmethod
     def _build_columns(rows):
@@ -38,6 +42,15 @@ class DictTableModel(QAbstractTableModel):
         self.view_name = view_name
         self._columns = self._build_columns(self._rows)
         self.endResetModel()
+
+    def set_highlight_indices(self, indices):
+        """Set the idx values whose rows should be highlighted yellow."""
+        self._highlight_indices = set(indices)
+        self.dataChanged.emit(
+            self.index(0, 0),
+            self.index(self.rowCount() - 1, self.columnCount() - 1),
+            [Qt.BackgroundRole],
+        )
 
     def rowCount(self, parent=QModelIndex()):
         return 0 if parent.isValid() else len(self._rows)
@@ -72,6 +85,10 @@ class DictTableModel(QAbstractTableModel):
             if isinstance(value, int):
                 return Qt.AlignRight | Qt.AlignVCenter
             return Qt.AlignLeft | Qt.AlignVCenter
+
+        if role == Qt.BackgroundRole:
+            if self._highlight_indices and row.get("idx") in self._highlight_indices:
+                return _HIGHLIGHT_COLOR
 
         return None
 

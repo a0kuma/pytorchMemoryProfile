@@ -1,20 +1,63 @@
 import sys
+import argparse
+import threading
+import time
+import urllib.parse
 
 from PySide6.QtWidgets import QApplication
 
 from main_window import MainWindow
+from api import run_server
+
+DEFAULT_PORT = 32764
 
 
 def main():
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(
+        description="PyTorch Memory Profiler – web-based viewer"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=DEFAULT_PORT,
+        metavar="PORT",
+        help=(
+            f"Port for the local REST API server "
+            f"(default: {DEFAULT_PORT}, bound to 127.0.0.1)"
+        ),
+    )
+    parser.add_argument(
+        "pickle_path",
+        nargs="?",
+        default=None,
+        help="Optional path to a pickle file to open on startup",
+    )
+    args = parser.parse_args()
 
-    pickle_path = None
-    if len(sys.argv) > 1:
-        pickle_path = sys.argv[1]
+    # Start the REST API server in a background daemon thread
+    server_thread = threading.Thread(
+        target=run_server,
+        args=(args.port,),
+        daemon=True,
+    )
+    server_thread.start()
 
-    win = MainWindow(pickle_path=pickle_path)
+    # Give Flask a moment to bind its socket before the browser navigates
+    time.sleep(0.5)
+
+    # Build the startup URL; pass pickle path as a query parameter when given
+    base_url = f"http://127.0.0.1:{args.port}/"
+    if args.pickle_path:
+        url = base_url + "?pickle=" + urllib.parse.quote(
+            args.pickle_path, safe=""
+        )
+    else:
+        url = base_url
+
+    qt_app = QApplication(sys.argv)
+    win = MainWindow(url=url)
     win.show()
-    sys.exit(app.exec())
+    sys.exit(qt_app.exec())
 
 
 if __name__ == "__main__":

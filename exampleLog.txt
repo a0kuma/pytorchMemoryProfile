@@ -1,0 +1,259 @@
+{
+  "action": "segment_alloc",
+  "addr": 133558685401088,
+  "size": 268435456,
+  "stream": 0,
+  "time_us": 1775643015962527,
+  "frames": [
+    {
+      "name": "torch::unwind::unwind()",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "torch::CapturedTraceback::gather(bool, bool, bool)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "torch::cuda::(anonymous namespace)::gather_with_cpp()",
+      "filename": "memory_snapshot.cpp",
+      "line": 0
+    },
+    {
+      "name": "c10::cuda::CUDACachingAllocator::Native::DeviceCachingAllocator::malloc(signed char, unsigned long, CUstream_st*)",
+      "filename": "CUDACachingAllocator.cpp",
+      "line": 0
+    },
+    {
+      "name": "c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::malloc(void**, signed char, unsigned long, CUstream_st*)",
+      "filename": "",
+      "line": 0
+    },
+    {
+      "name": "c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::allocate(unsigned long)",
+      "filename": "",
+      "line": 0
+    },
+    {
+      "name": "c10::StorageImpl::StorageImpl(c10::StorageImpl::use_byte_size_t, c10::SymInt const&, c10::Allocator*, bool)",
+      "filename": "",
+      "line": 0
+    },
+    {
+      "name": "at::TensorBase at::detail::_empty_generic<long>(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>)",
+      "filename": "",
+      "line": 0
+    },
+    {
+      "name": "at::detail::empty_generic(c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType, std::optional<c10::MemoryFormat>)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::detail::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::detail::empty_cuda(c10::ArrayRef<long>, c10::TensorOptions const&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::(anonymous namespace)::create_out(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions const&)",
+      "filename": "RegisterCUDA_0.cpp",
+      "line": 0
+    },
+    {
+      "name": "at::(anonymous namespace)::structured_ufunc_add_CUDA_functional::set_output_raw_strided(long, c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions, c10::ArrayRef<at::Dimname>)",
+      "filename": "RegisterCUDA_0.cpp",
+      "line": 0
+    },
+    {
+      "name": "at::TensorIteratorBase::fast_set_up(at::TensorIteratorConfig const&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::TensorIteratorBase::build(at::TensorIteratorConfig&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::TensorIteratorBase::build_borrowing_binary_op(at::TensorBase const&, at::TensorBase const&, at::TensorBase const&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::meta::structured_add_Tensor::meta(at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "at::(anonymous namespace)::wrapper_CUDA_add_Tensor(at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "RegisterCUDA_0.cpp",
+      "line": 0
+    },
+    {
+      "name": "c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, at::Tensor const&, c10::Scalar const&), &at::(anonymous namespace)::wrapper_CUDA_add_Tensor>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, at::Tensor const&, c10::Scalar const&> >, at::Tensor (at::Tensor const&, at::Tensor const&, c10::Scalar const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "RegisterCUDA_0.cpp",
+      "line": 0
+    },
+    {
+      "name": "at::_ops::add_Tensor::redispatch(c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "torch::autograd::VariableType::(anonymous namespace)::add_Tensor(c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "VariableType_2.cpp",
+      "line": 0
+    },
+    {
+      "name": "c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&), &torch::autograd::VariableType::(anonymous namespace)::add_Tensor>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&> >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "VariableType_2.cpp",
+      "line": 0
+    },
+    {
+      "name": "at::_ops::add_Tensor::call(at::Tensor const&, at::Tensor const&, c10::Scalar const&)",
+      "filename": "??",
+      "line": 0
+    },
+    {
+      "name": "torch::autograd::THPVariable_add(_object*, _object*, _object*)",
+      "filename": "python_variable_methods.cpp",
+      "line": 0
+    },
+    {
+      "name": "_object* torch::autograd::TypeError_to_NotImplemented_<&torch::autograd::THPVariable_add>(_object*, _object*, _object*)",
+      "filename": "python_variable_methods.cpp",
+      "line": 0
+    },
+    {
+      "name": "method_vectorcall_VARARGS_KEYWORDS",
+      "filename": "/usr/local/src/conda/python-3.10.19/Objects/descrobject.c",
+      "line": 344
+    },
+    {
+      "name": "_PyObject_VectorcallTstate",
+      "filename": "/usr/local/src/conda/python-3.10.19/Include/cpython/abstract.h",
+      "line": 114
+    },
+    {
+      "name": "slot_nb_add",
+      "filename": "/usr/local/src/conda/python-3.10.19/Objects/typeobject.c",
+      "line": 7282
+    },
+    {
+      "name": "binary_op1",
+      "filename": "/usr/local/src/conda/python-3.10.19/Objects/abstract.c",
+      "line": 891
+    },
+    {
+      "name": "allocate_5gb_and_compute",
+      "filename": "/home/r13922a13/mew_mem_1/shit5.py",
+      "line": 64
+    },
+    {
+      "name": "_PyEval_EvalFrameDefault",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/ceval.c",
+      "line": 2084
+    },
+    {
+      "name": "main",
+      "filename": "/home/r13922a13/mew_mem_1/shit5.py",
+      "line": 85
+    },
+    {
+      "name": "_PyEval_EvalFrame",
+      "filename": "/usr/local/src/conda/python-3.10.19/Include/internal/pycore_ceval.h",
+      "line": 46
+    },
+    {
+      "name": "_PyObject_VectorcallTstate",
+      "filename": "/usr/local/src/conda/python-3.10.19/Include/cpython/abstract.h",
+      "line": 114
+    },
+    {
+      "name": "<module>",
+      "filename": "/home/r13922a13/mew_mem_1/shit5.py",
+      "line": 103
+    },
+    {
+      "name": "_PyEval_EvalFrame",
+      "filename": "/usr/local/src/conda/python-3.10.19/Include/internal/pycore_ceval.h",
+      "line": 46
+    },
+    {
+      "name": "_PyObject_VectorcallTstate",
+      "filename": "/usr/local/src/conda/python-3.10.19/Include/cpython/abstract.h",
+      "line": 114
+    },
+    {
+      "name": "_PyEval_EvalFrame",
+      "filename": "/usr/local/src/conda/python-3.10.19/Include/internal/pycore_ceval.h",
+      "line": 46
+    },
+    {
+      "name": "PyEval_EvalCode",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/ceval.c",
+      "line": 1134
+    },
+    {
+      "name": "run_eval_code_obj",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/pythonrun.c",
+      "line": 1291
+    },
+    {
+      "name": "run_mod",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/pythonrun.c",
+      "line": 1312
+    },
+    {
+      "name": "pyrun_file",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/pythonrun.c",
+      "line": 1208
+    },
+    {
+      "name": "_PyRun_SimpleFileObject",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/pythonrun.c",
+      "line": 456
+    },
+    {
+      "name": "_PyRun_AnyFileObject",
+      "filename": "/usr/local/src/conda/python-3.10.19/Python/pythonrun.c",
+      "line": 90
+    },
+    {
+      "name": "pymain_run_file_obj",
+      "filename": "/usr/local/src/conda/python-3.10.19/Modules/main.c",
+      "line": 357
+    },
+    {
+      "name": "Py_BytesMain",
+      "filename": "/usr/local/src/conda/python-3.10.19/Modules/main.c",
+      "line": 1094
+    },
+    {
+      "name": "__libc_start_call_main",
+      "filename": "./csu/../sysdeps/nptl/libc_start_call_main.h",
+      "line": 58
+    },
+    {
+      "name": "__libc_start_main_impl",
+      "filename": "./csu/../csu/libc-start.c",
+      "line": 392
+    },
+    {
+      "name": "_start",
+      "filename": "??",
+      "line": 0
+    }
+  ]
+}
